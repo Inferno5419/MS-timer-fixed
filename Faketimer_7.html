@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Timer Style</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        #average {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: white;
+            position: absolute;
+            top: 10px;
+        }
+
+        #timer {
+            font-size: 7rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: color 0.5s ease-in-out;
+        }
+
+        .active {
+            background: linear-gradient(135deg, #3a86ff, #00b4d8);
+        }
+
+        .active #timer {
+            color: black;
+        }
+
+        #indicator {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 10px solid white;
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: grey;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #indicator-fill {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: transparent;
+            position: absolute;
+            clip-path: circle(0% at 50% 50%);
+            transition: clip-path 0.5s linear;
+            background: white;
+        }
+
+        #indicator span {
+            font-size: 20px;
+            font-weight: bold;
+            color: black;
+            position: relative;
+        }
+
+        #timeLog {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+            width: 200px;
+            color: white;
+        }
+
+        #resetButton, #deleteButton {
+            outline: none;
+            border: none;
+        }
+
+        #resetButton {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: #ff4c4c;
+            color: white;
+            font-size: 1.5rem;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        #deleteButton {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: #ffcc00;
+            color: black;
+            font-size: 1rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pb {
+            color: gold;
+            font-weight: bold;
+            text-shadow: 0 0 10px gold;
+        }
+    </style>
+</head>
+<body>
+    <div id="average">Average: 0.0</div>
+    <div id="timer">0.0</div>
+    <div id="indicator">
+        <div id="indicator-fill"></div>
+        <span>Hold</span>
+    </div>
+    <button id="deleteButton">Delete</button>
+    <ul id="timeLog"></ul>
+    <button id="resetButton">Reset</button>
+
+    <script>
+        let timerDisplay = document.getElementById("timer");
+        let indicatorText = document.querySelector("#indicator span");
+        let indicatorFill = document.getElementById("indicator-fill");
+        let fakeTime = 0;
+        let realTime = 0;
+        let interval;
+        let holding = false;
+        let timerRunning = false;
+        let timeLogs = [];
+
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && !holding && !timerRunning) {
+                holding = true;
+                indicatorFill.style.clipPath = "circle(100% at 50% 50%)";
+                setTimeout(() => {
+                    if (holding) {
+                        indicatorText.textContent = "Release";
+                    }
+                }, 500);
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (e.code === "Space" && holding) {
+                holding = false;
+                indicatorFill.style.clipPath = "circle(0% at 50% 50%)";
+                indicatorText.textContent = "Stop";
+                startFakeTimer();
+            } else if (e.code === "Space" && timerRunning) {
+                stopFakeTimer();
+            }
+        });
+
+        function startFakeTimer() {
+            if (timerRunning) return;
+            timerRunning = true;
+            realTime = 0;
+            fakeTime = 0;
+            updateTimerDisplay();
+            interval = setInterval(() => {
+                realTime += 10;
+                fakeTime = (realTime * 0.7) / 1000;
+                updateTimerDisplay();
+            }, 10);
+        }
+
+        function stopFakeTimer() {
+            if (interval) clearInterval(interval);
+            timerRunning = false;
+            timeLogs.push(fakeTime.toFixed(1));
+            updateTimeLog();
+            indicatorText.textContent = "Hold";
+        }
+
+        function updateTimerDisplay() {
+            timerDisplay.textContent = fakeTime.toFixed(1);
+        }
+
+        function updateTimeLog() {
+            let timeLogList = document.getElementById("timeLog");
+            timeLogList.innerHTML = "";
+            let shortest = Math.min(...timeLogs.map(Number));
+            timeLogs.forEach((time) => {
+                let li = document.createElement("li");
+                li.innerHTML = (time == shortest ? '<span class="pb">PB</span> ' : '') + `Time: ${time}s`;
+                timeLogList.appendChild(li);
+            });
+        }
+
+        document.getElementById("deleteButton").addEventListener("click", () => {
+            timeLogs.pop();
+            updateTimeLog();
+            document.activeElement.blur();
+        });
+
+        document.getElementById("resetButton").addEventListener("click", () => {
+            clearInterval(interval);
+            timerRunning = false;
+            fakeTime = 0;
+            realTime = 0;
+            updateTimerDisplay();
+            timeLogs = [];
+            updateTimeLog();
+            document.activeElement.blur();
+        });
+    </script>
+</body>
+</html>
